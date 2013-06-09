@@ -40,6 +40,7 @@ our ($nick,$mailto)=@ARGV;
 our $from= $ENV{EMAIL}
   or die "need EMAIL env var to be set";
 
+use lib "/opt/chj/perllib";
 use Chj::xopen 'xopen_read';
 use Chj::xperlfunc;
 use Chj::xopendir;

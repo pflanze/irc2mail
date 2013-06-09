@@ -1,0 +1,29 @@
+If you're like me and run an IRC client on a machine (server) that's
+always online, but don't look at it (and/or its X notifications don't
+reach you since for example it's separated from your desktop through
+VNC), but would still like to be notified if someone "pings" you, then
+this might be for you. It will parse Xchat's log messages, queue up
+what's said to you, then when you don't say anything on any channel
+within 60 seconds, send the queued messages to you by email (one email
+per channel).
+
+
+INSTALL:
+
+ # mkdir -p /opt/chj
+ # cd /opt/chj
+ # git clone https://github.com/pflanze/chj-bin.git bin
+ # git clone https://github.com/pflanze/chj-perllib.git perllib
+ # git clone https://github.com/pflanze/irc2mail.git 
+
+USE:
+
+ * start Xchat
+ * enable logging in Xchat
+ * start irc2mail:
+
+   $ irc2mail yournick you@yourdomain.org
+
+   # you could use daemonize from /opt/chj/bin
+   daemonize --bg --out irc2mail.errs -- irc2mail/irc2mail yournick your@email.org
+
