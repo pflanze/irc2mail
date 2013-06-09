@@ -1,0 +1,203 @@
+#!/usr/bin/perl -w
+
+# Sun Jun  9 15:17:28 CEST 2013
+(my $email='chrjae%gmail,com')=~ tr/%,/@./;
+
+use strict;
+
+our $logdir= "$ENV{HOME}/.xchat2/xchatlogs";
+our $maxage= 60; # seconds before mail is sent
+
+$0=~ /(.*?)([^\/]+)\z/s or die "?";
+my ($mydir, $myname)=($1,$2);
+sub usage {
+    print STDERR map{"$_\n"} @_ if @_;
+    print "$myname nick email
+
+  observes all xchat style irc log files under '$logdir', sends mail
+  to <email> if <nick> appears in new messages (with nick appended
+  ore prepended with underscores also matching)
+
+  Queues messages until the first is $maxage seconds old, then sends them
+  grouped by channel; or drops them all if nick says something anywhere
+  [todo: treat /me messages as saying, too]
+
+  (Christian Jaeger <$email>)
+";
+exit (@_ ? 1 : 0);
+}
+
+use Getopt::Long;
+our $verbose=0;
+our $opt_dry;
+GetOptions("verbose"=> \$verbose,
+	   "help"=> sub{usage},
+	   "dry-run"=> \$opt_dry,
+	   ) or exit 1;
+usage unless @ARGV==2;
+
+our ($nick,$mailto)=@ARGV;
+our $from= $ENV{EMAIL}
+  or die "need EMAIL env var to be set";
+
+use Chj::xopen 'xopen_read';
+use Chj::xperlfunc;
+use Chj::xopendir;
+use Fcntl 'SEEK_END';
+use Chj::Sendmail 'sendmail';
+
+sub debug {
+    if ($verbose) {
+	print STDERR "DEBUG: ", @_, "\n"
+    }
+}
+
+sub xprintln { print @_, "\n" or die $! };
+
+sub send_notification {
+    my ($channel, $msgs)=@_;
+    if ($opt_dry) {
+	xprintln "-- $channel ----";
+	for (@$msgs) {
+	    xprintln " ", $_
+	}
+	xprintln;
+    } else {
+	sendmail(From=> $from,
+		 To=> $mailto,
+		 Subject=> "[$myname] $channel",
+		 Data=> join("",map{"$_\n"}@$msgs))
+    }
+}
+
+
+
+sub _Message { debug "new _Message, @_";
+	       bless +{@_},'_Message' }
+# channel, text
+{
+    package _Message;
+}
+
+sub _Queue { debug "new _Queue, @_";
+	     bless +{@_},'_Queue' }
+# starttime, q
+{
+    package _Queue;
+    sub do_add {
+	my $s=shift;
+	push @{$$s{q}},@_;
+    }
+    sub by_channel {
+	my $s=shift;
+	my %channel;
+	for my $msg (@{$$s{q}}) {
+	    push @{ $channel{$$msg{channel}} }, $$msg{text}
+	}
+	\%channel
+    }
+}
+
+# queue ----
+
+#our %user2queue;
+#^ for multi-user use
+our $maybe_queue;
+
+sub enqueue_notification ($) {
+    my $queue= $maybe_queue || _Queue (starttime=> time);
+    $queue->do_add (@_);
+    $maybe_queue= $queue;
+}
+
+sub queue_checksend {
+    if ($maybe_queue) {
+	my $age= time - $$maybe_queue{starttime};
+	if ($age > $maxage) {
+	    debug "send out queue";
+	    my $by_channel= $maybe_queue->by_channel;
+	    for my $channel (keys %$by_channel) {
+		my $msgs= $$by_channel{$channel};
+		send_notification ($channel, $msgs)
+	    }
+	    $maybe_queue= undef;
+	}
+    }
+}
+
+sub delete_queue {
+    #my ($nick)=@_;
+    debug "delete_queue" if $maybe_queue;
+    $maybe_queue= undef;
+}
+
+# parsing ----
+
+our $whore= qr/<([^<>]+)>\s*(.*)/;
+our $nickre= qr/\b[_]*$nick[_]*\b/;
+
+sub linematchP {
+    my ($line)=@_;
+    if (my ($who,$rest)= $line=~ /$whore/) {
+	if ($who=~ /^$nickre$/) {
+	    #debug "ignore self-said";
+	    delete_queue ($nick);
+	    0
+	} else {
+	    my $res= $rest=~ /$nickre/;
+	    #debug "linematchP '$line'=~ /$nickre/ = '$res'";
+	    $res
+	}
+    } else {
+	0
+    }
+}
+
+sub scanfd {
+    my ($f,$item)=@_;
+    while (<$f>) {
+	if (linematchP $_) {
+	    $item=~ s/.log$//;
+	    chomp;
+	    enqueue_notification (_Message (channel=> $item, text=> $_))
+	}
+    }
+}
+
+our %path2fd;
+
+sub do_replenishfds {
+    my ($scan_appearances)=@_;
+    my $d= xopendir $logdir;
+    while (defined (my$item= $d->xnread)) {
+	if (not exists $path2fd{$item}) {
+	    debug "open '$item'";
+	    my $f= xopen_read "$logdir/$item";
+	    if ($scan_appearances) {
+		#debug "scanfd";
+		scanfd ($f,$item);
+	    } else {
+		#debug "xseek";
+		$f->xseek(0,SEEK_END);
+	    }
+	    $path2fd{$item}=$f;
+	}
+    }
+}
+
+do_replenishfds (0);
+
+while (1) {
+    sleep 2;
+    # ^ still needs to be small (smaller than $maxage), because the
+    # scanning doesn't cut off queues timely across channels (todo;
+    # even better, cut off before, you remember! that'd be *perfect*)
+    for my $item (keys %path2fd) {
+	scanfd ($path2fd{$item},$item);
+    }
+    do_replenishfds (1);
+    queue_checksend;
+}
+
+#use Chj::ruse;
+#use Chj::Backtrace; use Chj::repl; repl;
