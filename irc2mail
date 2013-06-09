@@ -6,7 +6,7 @@
 use strict;
 
 our $logdir= "$ENV{HOME}/.xchat2/xchatlogs";
-our $maxage= 60; # seconds before mail is sent
+our $maxage= 120; # seconds before mail is sent
 
 $0=~ /(.*?)([^\/]+)\z/s or die "?";
 my ($mydir, $myname)=($1,$2);
@@ -190,9 +190,11 @@ do_replenishfds (0);
 
 while (1) {
     sleep 2;
-    # ^ still needs to be small (smaller than $maxage), because the
-    # scanning doesn't cut off queues timely across channels (todo;
-    # even better, cut off before, you remember! that'd be *perfect*)
+    # ^ still needs to be small (smaller than the attention period
+    # after writing something, i.e. can't be just $maxage), because
+    # the scanning doesn't currently get the time of the last outbound
+    # message, nor does it prevent/undo queuing of newer messages from
+    # previously scanned log files.
     for my $item (keys %path2fd) {
 	scanfd ($path2fd{$item},$item);
     }
