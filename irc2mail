@@ -123,7 +123,7 @@ sub enqueue_notification ($ $) {
     $nick2queue{$nick}= $queue;
 }
 
-sub queue_checksend {
+sub queue_checksend () {
     for my $nick (keys %nick2queue) {
 	my $queue= $nick2queue{$nick};
 	my $age= time - $$queue{starttime};
@@ -139,7 +139,7 @@ sub queue_checksend {
     }
 }
 
-sub delete_queue {
+sub delete_queue ($) {
     my ($nick)=@_;
     debug "delete_queue ('$nick')"
       if delete $nick2queue{$nick};
@@ -217,7 +217,7 @@ while (1) {
 	scanfd ($path2fd{$item},$item);
     }
     do_replenishfds (1);
-    queue_checksend;
+    queue_checksend ();
 }
 
 #use Chj::ruse;
