@@ -4,6 +4,7 @@
 (my $email='chrjae%gmail,com')=~ tr/%,/@./;
 
 use strict;
+use Carp::Always;
 
 our $logdir= "$ENV{HOME}/.xchat2/xchatlogs";
 our $maxage= 120; # seconds before mail is sent
