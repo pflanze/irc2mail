@@ -16,14 +16,24 @@ INSTALL:
  # git clone https://github.com/pflanze/chj-perllib.git perllib
  # git clone https://github.com/pflanze/irc2mail.git 
 
+Add /opt/chj/bin to your PATH.
+
+
+CONFIGURATION:
+
+Copy and edit the included config.pl (put it at ~/.irc2mail.pl if you
+want to use the included startstop script unmodified; see irc2mail
+--help for more info).
+
 USE:
 
  * start Xchat
  * enable logging in Xchat
  * start irc2mail:
 
-   $ irc2mail yournick you@yourdomain.org
+   $ path/to/irc2mail path/to/config.pl
 
-   # you could use daemonize from /opt/chj/bin
-   daemonize --bg --out irc2mail.errs -- irc2mail/irc2mail yournick your@email.org
+   or, (which is using daemonize from /opt/chj/bin)
+
+   $ path/to/irc2mail/startstop start
 
