@@ -12,15 +12,20 @@ $0=~ /(.*?)([^\/]+)\z/s or die "?";
 my ($mydir, $myname)=($1,$2);
 sub usage {
     print STDERR map{"$_\n"} @_ if @_;
-    print "$myname nick email
+    print "$myname path/to/config.pl
 
-  observes all xchat style irc log files under '$logdir', sends mail
-  to <email> if <nick> appears in new messages (with nick appended
-  ore prepended with underscores also matching)
+  config.pl must return a hashtable mapping nicknames to a map with
+  key 'to' mapping to an email address.
+  i.e.  { <nick> => { to=> <to> }}
 
-  Queues messages until the first is $maxage seconds old, then sends them
-  grouped by channel; or drops them all if nick says something anywhere
-  [todo: treat /me messages as saying, too]
+  $myname observes all xchat style irc log files under '$logdir', and
+  sends mail to <to> if <nick> appears in new messages (with nick
+  appended or prepended with underscores also matching). Note that
+  nick is case sensitively matched.
+
+  Queues messages until the first is $maxage seconds old, then sends
+  them grouped by channel; or drops them all if <nick> says something
+  anywhere [todo: treat /me messages as saying, too]
 
   (Christian Jaeger <$email>)
 ";
@@ -34,9 +39,10 @@ GetOptions("verbose"=> \$verbose,
 	   "help"=> sub{usage},
 	   "dry-run"=> \$opt_dry,
 	   ) or exit 1;
-usage unless @ARGV==2;
+usage unless @ARGV==1;
 
-our ($nick,$mailto)=@ARGV;
+our ($configpath)=@ARGV;
+
 our $from= $ENV{EMAIL}
   or die "need EMAIL env var to be set";
 
@@ -46,6 +52,10 @@ use Chj::xperlfunc;
 use Chj::xopendir;
 use Fcntl 'SEEK_END';
 use Chj::Sendmail 'sendmail';
+use Chj::load;
+
+our $config= require $configpath;
+
 
 sub debug {
     if ($verbose) {
@@ -55,10 +65,11 @@ sub debug {
 
 sub xprintln { print @_, "\n" or die $! };
 
-sub send_notification {
-    my ($channel, $msgs)=@_;
+sub send_notification ($$$) {
+    my ($nick, $channel, $msgs)=@_;
+    my $mailto= $$config{$nick};
     if ($opt_dry) {
-	xprintln "-- $channel ----";
+	xprintln "-- to $mailto, channel $channel ----";
 	for (@$msgs) {
 	    xprintln " ", $_
 	}
@@ -101,54 +112,58 @@ sub _Queue { debug "new _Queue, @_";
 
 # queue ----
 
-#our %user2queue;
-#^ for multi-user use
-our $maybe_queue;
+our %nick2queue;
 
-sub enqueue_notification ($) {
-    my $queue= $maybe_queue || _Queue (starttime=> time);
-    $queue->do_add (@_);
-    $maybe_queue= $queue;
+sub enqueue_notification ($ $) {
+    my ($nick,$msg)=@_;
+    my $queue= $nick2queue{$nick} || _Queue (starttime=> time);
+    $queue->do_add ($msg);
+    $nick2queue{$nick}= $queue;
 }
 
 sub queue_checksend {
-    if ($maybe_queue) {
-	my $age= time - $$maybe_queue{starttime};
+    for my $nick (keys %nick2queue) {
+	my $queue= $nick2queue{$nick};
+	my $age= time - $$queue{starttime};
 	if ($age > $maxage) {
 	    debug "send out queue";
-	    my $by_channel= $maybe_queue->by_channel;
+	    my $by_channel= $queue->by_channel;
 	    for my $channel (keys %$by_channel) {
 		my $msgs= $$by_channel{$channel};
-		send_notification ($channel, $msgs)
+		send_notification ($nick, $channel, $msgs)
 	    }
-	    $maybe_queue= undef;
+	    delete $nick2queue{$nick};
 	}
     }
 }
 
 sub delete_queue {
-    #my ($nick)=@_;
-    debug "delete_queue" if $maybe_queue;
-    $maybe_queue= undef;
+    my ($nick)=@_;
+    debug "delete_queue ('$nick')"
+      if delete $nick2queue{$nick};
 }
 
 # parsing ----
 
 our $whore= qr/<([^<>]+)>\s*(.*)/;
-our $nickre= qr/\b[_]*$nick[_]*\b/;
 
-sub linematchP {
+sub linematches {
     my ($line)=@_;
     if (my ($who,$rest)= $line=~ /$whore/) {
-	if ($who=~ /^$nickre$/) {
-	    #debug "ignore self-said";
-	    delete_queue ($nick);
-	    0
-	} else {
-	    my $res= $rest=~ /$nickre/;
-	    #debug "linematchP '$line'=~ /$nickre/ = '$res'";
-	    $res
+	my @res;
+	for my $nick (keys %$config) {
+	    my $nickre= qr/\b[_]*$nick[_]*\b/;
+	    if ($who=~ /^$nickre$/) {
+		#debug "ignore self-said";
+		delete_queue ($nick);
+		0
+	    } else {
+		push @res, $nick
+		  if $rest=~ /$nickre/;
+	    }
 	}
+	#debug "linematchP '$line' = ".Dumper($res);
+	@res	
     } else {
 	0
     }
@@ -157,10 +172,12 @@ sub linematchP {
 sub scanfd {
     my ($f,$item)=@_;
     while (<$f>) {
-	if (linematchP $_) {
-	    $item=~ s/.log$//;
-	    chomp;
-	    enqueue_notification (_Message (channel=> $item, text=> $_))
+	my $line=$_;
+	chomp $line;
+	$item=~ s/.log$//;
+	my $msg= _Message (channel=> $item, text=> $line);
+	for my $nick (linematches $line) {
+	    enqueue_notification ($nick, $msg);
 	}
     }
 }
