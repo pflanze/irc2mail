@@ -1,0 +1,24 @@
+#!/bin/bash
+
+set -eu
+
+log=~/irc2mail.log
+cd ~/irc2mail/
+cmd='./irc2mail ~/.irc2mail.pl'
+
+case "$1" in
+    stop)
+    daemonize --stop -- $cmd
+    ;;
+    start)
+    daemonize --bg --out ~/irc2mail.log -- $cmd
+    ;;
+    restart)
+    daemonize --stop -- $cmd || true
+    daemonize --bg --out ~/irc2mail.log -- $cmd
+    ;;
+    *)
+    echo "$0 start|stop"
+    ;;
+esac
+
