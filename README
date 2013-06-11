@@ -22,8 +22,8 @@ Add /opt/chj/bin to your PATH.
 CONFIGURATION:
 
 Copy and edit the included config.pl (put it at ~/.irc2mail.pl if you
-want to use the included startstop script unmodified; see irc2mail
---help for more info).
+want to use the included run script unmodified; see irc2mail --help
+for more info).
 
 USE:
 
@@ -35,5 +35,5 @@ USE:
 
    or, (which is using daemonize from /opt/chj/bin)
 
-   $ path/to/irc2mail/startstop start
+   $ path/to/irc2mail/run start
 
