@@ -7,16 +7,26 @@ cd ~/irc2mail/
 config=~/.irc2mail.pl
 cmd=$(printf './irc2mail %q' "$config")
 
+stop () {
+    echo "`date` stop" >> "$log"
+    daemonize --stop -- $cmd
+}
+
+start () {
+    echo "`date` start" >> "$log"
+    daemonize --bg --out ~/irc2mail.log -- $cmd
+}
+
 case "$1" in
     stop)
-    daemonize --stop -- $cmd
+    stop
     ;;
     start)
-    daemonize --bg --out ~/irc2mail.log -- $cmd
+    start
     ;;
     restart)
-    daemonize --stop -- $cmd || true
-    daemonize --bg --out ~/irc2mail.log -- $cmd
+    stop || true
+    start
     ;;
     *)
     echo "$0 start|stop"
