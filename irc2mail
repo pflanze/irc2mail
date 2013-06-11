@@ -158,7 +158,6 @@ sub linematches {
 	    if ($who=~ /^$nickre$/) {
 		#debug "ignore self-said";
 		delete_queue ($nick);
-		0
 	    } else {
 		push @res, $nick
 		  if $rest=~ /$nickre/;
@@ -167,7 +166,7 @@ sub linematches {
 	#debug "linematchP '$line' = ".Dumper($res);
 	@res	
     } else {
-	0
+	()
     }
 }
 
