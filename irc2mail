@@ -68,6 +68,7 @@ sub xprintln { print @_, "\n" or die $! };
 
 sub send_notification ($$$) {
     my ($nick, $channel, $msgs)=@_;
+    warn time."  sending notification for '$nick', channel '$channel'\n";
     my $mailto= $$config{$nick}{to};
     if ($opt_dry) {
 	xprintln "-- to $mailto, channel $channel ----";
