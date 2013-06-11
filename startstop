@@ -4,7 +4,8 @@ set -eu
 
 log=~/irc2mail.log
 cd ~/irc2mail/
-cmd='./irc2mail ~/.irc2mail.pl'
+config=~/.irc2mail.pl
+cmd=$(printf './irc2mail %q' "$config")
 
 case "$1" in
     stop)
