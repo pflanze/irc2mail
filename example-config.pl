@@ -1,4 +1,4 @@
-my $channels= +{map {$_=>1} qw(FreeNode-#perl FreeNode-#debian)};
+my $channels= +{map {$_=>1} ('FreeNode-#perl', 'FreeNode-#debian')};
 {
  yournick=>
  {
