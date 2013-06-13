@@ -57,10 +57,13 @@ use Chj::load;
 
 our $config= require $configpath;
 
+sub Log {
+    print STDERR time," ", @_, "\n"
+}
 
 sub debug {
     if ($verbose) {
-	print STDERR "DEBUG: ", @_, "\n"
+	Log "DEBUG: ", @_
     }
 }
 
@@ -171,35 +174,48 @@ sub linematches {
 }
 
 sub scanfd {
-    my ($f,$item)=@_;
+    my ($f,$channel)=@_;
     while (<$f>) {
 	my $line=$_;
 	chomp $line;
-	$item=~ s/.log$//;
-	my $msg= _Message (channel=> $item, text=> $line);
+	my $msg= _Message (channel=> $channel, text=> $line);
 	for my $nick (linematches $line) {
-	    enqueue_notification ($nick, $msg);
+	    my $maybe_channels= $$config{$nick}{channels};
+	    if (! $maybe_channels or $$maybe_channels{$channel}) {
+		enqueue_notification ($nick, $msg);
+	    } else {
+		Log "ignoring mentioning of '$nick' on channel '$channel'";
+	    }
 	}
     }
 }
 
 our %path2fd;
 
+my %ignored;
 sub do_replenishfds {
     my ($scan_appearances)=@_;
     my $d= xopendir $logdir;
     while (defined (my$item= $d->xnread)) {
-	if (not exists $path2fd{$item}) {
-	    debug "open '$item'";
-	    my $f= xopen_read "$logdir/$item";
-	    if ($scan_appearances) {
-		#debug "scanfd";
-		scanfd ($f,$item);
-	    } else {
-		#debug "xseek";
-		$f->xseek(0,SEEK_END);
+	if ($item=~ /^(.+)\.log\z/) {
+	    my $channel=$1;
+	    if (not exists $path2fd{$item}) {
+		debug "open '$item'";
+		my $f= xopen_read "$logdir/$item";
+		if ($scan_appearances) {
+		    #debug "scanfd";
+		    scanfd ($f,$channel);
+		} else {
+		    #debug "xseek";
+		    $f->xseek(0,SEEK_END);
+		}
+		$path2fd{$item}=$f;
 	    }
-	    $path2fd{$item}=$f;
+	} else {
+	    unless ($ignored{$item}) {
+		Log "ignoring item '$item'";
+		$ignored{$item}=1;
+	    }
 	}
     }
 }
