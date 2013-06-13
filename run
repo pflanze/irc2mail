@@ -14,7 +14,7 @@ stop () {
 
 start () {
     echo "`date` start" >> "$log"
-    daemonize --bg --out ~/irc2mail.log -- $cmd
+    daemonize --bg --out "$log" -- $cmd
 }
 
 case "$1" in
