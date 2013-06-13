@@ -21,9 +21,9 @@ Add /opt/chj/bin to your PATH.
 
 CONFIGURATION:
 
-Copy and edit the included config.pl (put it at ~/.irc2mail.pl if you
-want to use the included run script unmodified; see irc2mail --help
-for more info).
+Copy and edit the included example-config.pl (put it at ~/.irc2mail.pl
+if you want to use the included run script unmodified; see irc2mail
+--help for more info).
 
 USE:
 
@@ -31,7 +31,7 @@ USE:
  * enable logging in Xchat
  * start irc2mail:
 
-   $ path/to/irc2mail path/to/config.pl
+   $ path/to/irc2mail path/to/the-config.pl
 
    or, (which is using daemonize from /opt/chj/bin)
 

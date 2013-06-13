@@ -18,6 +18,7 @@ sub usage {
   config.pl must return a hashtable mapping nicknames to a map with
   key 'to' mapping to an email address.
   i.e.  { <nick> => { to=> <to> }}
+  There can be fields other than 'to', see example-config.pl
 
   $myname observes all xchat style irc log files under '$logdir', and
   sends mail to <to> if <nick> appears in new messages (with nick
