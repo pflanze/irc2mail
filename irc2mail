@@ -7,7 +7,7 @@ use strict;
 use Carp::Always;
 
 our $logdir= "$ENV{HOME}/.xchat2/xchatlogs";
-our $maxage= 120; # seconds before mail is sent
+our $maxage= 300; # seconds before mail is sent
 
 $0=~ /(.*?)([^\/]+)\z/s or die "?";
 my ($mydir, $myname)=($1,$2);
