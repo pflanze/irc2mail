@@ -153,25 +153,46 @@ sub delete_queue ($) {
 
 our $whore= qr/<([^<>]+)>\s*(.*)/;
 
-sub linematches {
-    my ($line)=@_;
+sub linematches ($$) {
+    my ($line, $is_privatechan)=@_;
     if (my ($who,$rest)= $line=~ /$whore/) {
 	my @res;
-	for my $nick (keys %$config) {
-	    my $nickre= qr/\b[_]*$nick[_]*\b/;
-	    if ($who=~ /^$nickre$/) {
-		#debug "ignore self-said";
-		delete_queue ($nick);
-	    } else {
-		push @res, $nick
-		  if $rest=~ /$nickre/;
+	# check both $who [and, unless $is_privatechan, search $rest]
+	# for configured nicknames
+	if ($is_privatechan) {
+	    if (defined (my $maybe_defaultnick= $$config{__DEFAULT_NICKNAME__})) {
+		my $nick= $maybe_defaultnick;
+		if ($who eq $nick) {
+		    #debug "ignore self-said";
+		    delete_queue ($nick);
+		} else {
+		    push @res, $nick
+		}
+	    }
+	    # else simply ignore, even if messages mention some nick
+	    # (privacy!)
+	} else {
+	    for my $nick (keys %$config) {
+		my $nickre= qr/\b[_]*$nick[_]*\b/;
+		if ($who=~ /^$nickre$/) {
+		    #debug "ignore self-said";
+		    delete_queue ($nick);
+		} else {
+		    push @res, $nick
+		      if $rest=~ /$nickre/;
+		}
 	    }
 	}
 	#debug "linematchP '$line' = ".Dumper($res);
-	@res	
+	@res
     } else {
 	()
     }
+}
+
+sub is_privatechan ($) {
+    my ($channel)=@_;
+    not $channel=~ /#/ and not $channel=~ /-server\.log$/
 }
 
 sub scanfd {
@@ -180,7 +201,7 @@ sub scanfd {
 	my $line=$_;
 	chomp $line;
 	my $msg= _Message (channel=> $channel, text=> $line);
-	for my $nick (linematches $line) {
+	for my $nick (linematches $line, is_privatechan($channel)) {
 	    my $maybe_channels= $$config{$nick}{channels};
 	    if (! $maybe_channels or $$maybe_channels{$channel}) {
 		enqueue_notification ($nick, $msg);

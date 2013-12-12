@@ -12,5 +12,8 @@ my $channels= +{map {$_=>1} ('FreeNode-#perl', 'FreeNode-#debian')};
   # including server name as in the logfile written by xchat, but
   # without the .log suffix)
   channels=> $channels,
- }
+ },
+ # if you want notifications of messages on private channels, too,
+ # then configure your nickname here:
+ __DEFAULT_NICKNAME__=> "yournick",
 }
