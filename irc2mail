@@ -45,9 +45,6 @@ usage unless @ARGV==1;
 
 our ($configpath)=@ARGV;
 
-our $from= $ENV{EMAIL}
-  or die "need EMAIL env var to be set";
-
 use lib "/opt/chj/perllib";
 use Chj::xopen 'xopen_read';
 use Chj::xperlfunc;
@@ -57,6 +54,10 @@ use Chj::Sendmail 'sendmail';
 use Chj::load;
 
 our $config= require $configpath;
+
+our $from= $$config{__FROM__} || $ENV{EMAIL}
+  or die "need either EMAIL env var or config value '__FROM__' to be set";
+
 
 sub Log {
     print STDERR time," ", @_, "\n"
