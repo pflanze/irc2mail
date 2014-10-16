@@ -201,10 +201,10 @@ sub scanfd {
     while (<$f>) {
 	my $line=$_;
 	chomp $line;
-	if ($channel=~ /^\(.*\)$/
+	if ($channel=~ /\(\w+\)/
 	    and
 	    $line=~ /This nickname is registered.*choose a different nickname, or identify/) {
-	    Log "ignoring 'nickname is registered' message"
+	    Log "ignoring 'nickname is registered' message in channel '$channel'"
 	} else {
 	    my $msg= _Message (channel=> $channel, text=> $line);
 	    for my $nick (linematches $line, is_privatechan($channel)) {
