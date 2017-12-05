@@ -211,7 +211,7 @@ sub line__called_nicks ($$) {
 		delete $joined_nicks{$n} unless $joined_nicks{$n} > 0;
 	    }
 	    Log "'$n' has $joinedquit, knowing "
-	      .(keys %joined_nicks)." nicks now";
+	      .(keys %joined_nicks)." nick(s) now";
 	}
 	()
     }
