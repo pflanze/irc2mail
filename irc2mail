@@ -210,6 +210,8 @@ sub line__called_nicks ($$) {
 		$joined_nicks{$n}--;
 		delete $joined_nicks{$n} unless $joined_nicks{$n} > 0;
 	    }
+	    Log "'$n' has $joinedleft, knowing "
+	      .(keys %joined_nicks)." nicks now";
 	}
 	()
     }
