@@ -45,9 +45,6 @@ usage unless @ARGV==1;
 
 our ($configpath)=@ARGV;
 
-our $from= $ENV{EMAIL}
-  or die "need EMAIL env var to be set";
-
 use lib "/opt/chj/perllib";
 use Chj::xopen 'xopen_read';
 use Chj::xperlfunc;
@@ -57,6 +54,10 @@ use Chj::Sendmail 'sendmail';
 use Chj::load;
 
 our $config= require $configpath;
+
+our $from= $$config{__FROM__} || $ENV{EMAIL}
+  or die "need either EMAIL env var or config value '__FROM__' to be set";
+
 
 sub Log {
     print STDERR time," ", @_, "\n"
@@ -200,13 +201,19 @@ sub scanfd {
     while (<$f>) {
 	my $line=$_;
 	chomp $line;
-	my $msg= _Message (channel=> $channel, text=> $line);
-	for my $nick (linematches $line, is_privatechan($channel)) {
-	    my $maybe_channels= $$config{$nick}{channels};
-	    if (! $maybe_channels or $$maybe_channels{$channel}) {
-		enqueue_notification ($nick, $msg);
-	    } else {
-		Log "ignoring mentioning of '$nick' on channel '$channel'";
+	if ($channel=~ /\(\w+\)/
+	    and
+	    $line=~ /This nickname is registered.*choose a different nickname, or identify/) {
+	    Log "ignoring 'nickname is registered' message in channel '$channel'"
+	} else {
+	    my $msg= _Message (channel=> $channel, text=> $line);
+	    for my $nick (linematches $line, is_privatechan($channel)) {
+		my $maybe_channels= $$config{$nick}{channels};
+		if (! $maybe_channels or $$maybe_channels{$channel}) {
+		    enqueue_notification ($nick, $msg);
+		} else {
+		    Log "ignoring mentioning of '$nick' on channel '$channel'";
+		}
 	    }
 	}
     }

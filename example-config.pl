@@ -13,7 +13,10 @@ my $channels= +{map {$_=>1} ('FreeNode-#perl', 'FreeNode-#debian')};
   # without the .log suffix)
   channels=> $channels,
  },
- # if you want notifications of messages on private channels, too,
- # then configure your nickname here:
+ # If you want notifications of messages on private channels, too,
+ # then configure your nickname here (only works for person who logs
+ # in):
  __DEFAULT_NICKNAME__=> "yournick",
+ # To override $EMAIL env var:
+ #__FROM__=> "your@address.com",
 }
