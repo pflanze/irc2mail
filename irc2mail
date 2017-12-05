@@ -203,14 +203,14 @@ sub line__called_nicks ($$) {
 	    @res
 	}
     } else {
-	if (my ($n,$joinedleft)= $line=~ /\*\s+(\S+)\s.*has (joined|left)/) {
-	    if ($joinedleft eq "joined") {
+	if (my ($n,$joinedquit)= $line=~ /\*\s+(\S+)\s.*has (joined|quit)/) {
+	    if ($joinedquit eq "joined") {
 		$joined_nicks{$n}++;
 	    } else {
 		$joined_nicks{$n}--;
 		delete $joined_nicks{$n} unless $joined_nicks{$n} > 0;
 	    }
-	    Log "'$n' has $joinedleft, knowing "
+	    Log "'$n' has $joinedquit, knowing "
 	      .(keys %joined_nicks)." nicks now";
 	}
 	()
