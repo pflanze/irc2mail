@@ -154,39 +154,63 @@ sub delete_queue ($) {
 
 our $whore= qr/<([^<>]+)>\s*(.*)/;
 
+# nicks of all channels that have been seen joining (good enough for
+# spammer detection?)
+our %joined_nicks;
+
 sub line__called_nicks ($$) {
     my ($line, $is_privatechan)=@_;
     if (my ($who,$rest)= $line=~ /$whore/) {
-	my @res;
-	# check both $who [and, unless $is_privatechan, search $rest]
-	# for configured nicknames
-	if ($is_privatechan) {
-	    if (defined (my $maybe_defaultnick= $$config{__DEFAULT_NICKNAME__})) {
-		my $nick= $maybe_defaultnick;
-		if ($who eq $nick) {
-		    #debug "ignore self-said";
-		    delete_queue ($nick);
-		} else {
-		    push @res, $nick
+	# spammer detection
+	my @fragments= split /[\s,.]/, $rest;
+	my @called_joined_nicks= grep {
+	    $joined_nicks{$_}
+	} @fragments;
+	
+	if (@called_joined_nicks >= 7) {
+	    my $n=@called_joined_nicks;
+	    Log "ignoring spammer calling $n joined nicks: '$line'";
+	    ()
+	} else {
+	    my @res;
+	    # check both $who [and, unless $is_privatechan, search $rest]
+	    # for configured nicknames
+	    if ($is_privatechan) {
+		if (defined (my $maybe_defaultnick= $$config{__DEFAULT_NICKNAME__})) {
+		    my $nick= $maybe_defaultnick;
+		    if ($who eq $nick) {
+			#debug "ignore self-said";
+			delete_queue ($nick);
+		    } else {
+			push @res, $nick
+		    }
+		}
+		# else simply ignore, even if messages mention some nick
+		# (privacy!)
+	    } else {
+		for my $nick (keys %$config) {
+		    my $nickre= qr/\b[_]*$nick[_]*\b/;
+		    if ($who=~ /^$nickre$/) {
+			#debug "ignore self-said";
+			delete_queue ($nick);
+		    } else {
+			push @res, $nick
+			  if $rest=~ /$nickre/;
+		    }
 		}
 	    }
-	    # else simply ignore, even if messages mention some nick
-	    # (privacy!)
-	} else {
-	    for my $nick (keys %$config) {
-		my $nickre= qr/\b[_]*$nick[_]*\b/;
-		if ($who=~ /^$nickre$/) {
-		    #debug "ignore self-said";
-		    delete_queue ($nick);
-		} else {
-		    push @res, $nick
-		      if $rest=~ /$nickre/;
-		}
+	    #debug "linematchP '$line' = ".Dumper($res);
+	    @res
+	}
+    } else {
+	if (my ($n,$joinedleft)= $line=~ /\*\s+(\S+)\s.*has (joined|left)/) {
+	    if ($joinedleft eq "joined") {
+		$joined_nicks{$n}++;
+	    } else {
+		$joined_nicks{$n}--;
+		delete $joined_nicks{$n} unless $joined_nicks{$n} > 0;
 	    }
 	}
-	#debug "linematchP '$line' = ".Dumper($res);
-	@res
-    } else {
 	()
     }
 }
