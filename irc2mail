@@ -166,8 +166,9 @@ sub line__called_nicks ($$) {
 	my @called_joined_nicks= grep {
 	    $joined_nicks{$_}
 	} @fragments;
-	
-	if (@called_joined_nicks >= 7) {
+
+	# only require 5 nicks as long term lurkers will not be detected.
+	if (@called_joined_nicks >= 5) {
 	    my $n=@called_joined_nicks;
 	    Log "ignoring spammer calling $n joined nicks: '$line'";
 	    ()
