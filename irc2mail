@@ -154,7 +154,7 @@ sub delete_queue ($) {
 
 our $whore= qr/<([^<>]+)>\s*(.*)/;
 
-sub linematches ($$) {
+sub line__called_nicks ($$) {
     my ($line, $is_privatechan)=@_;
     if (my ($who,$rest)= $line=~ /$whore/) {
 	my @res;
@@ -207,7 +207,7 @@ sub scanfd {
 	    Log "ignoring 'nickname is registered' message in channel '$channel'"
 	} else {
 	    my $msg= _Message (channel=> $channel, text=> $line);
-	    for my $nick (linematches $line, is_privatechan($channel)) {
+	    for my $nick (line__called_nicks $line, is_privatechan($channel)) {
 		my $maybe_channels= $$config{$nick}{channels};
 		if (! $maybe_channels or $$maybe_channels{$channel}) {
 		    enqueue_notification ($nick, $msg);
