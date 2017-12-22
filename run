@@ -2,34 +2,10 @@
 
 set -eu
 
-log=~/irc2mail.log
-cd ~/irc2mail/
+logdir=~/log/irc2mail
 config=~/.irc2mail.pl
-cmd=$(printf './irc2mail %q' "$config")
+cd ~/irc2mail/
 
-stop () {
-    echo "`date` stop" >> "$log"
-    daemonize --stop -- $cmd
-}
+private mkdir -p "$logdir"
 
-start () {
-    echo "`date` start" >> "$log"
-    daemonize --bg --out "$log" -- $cmd
-}
-
-case "$1" in
-    stop)
-    stop
-    ;;
-    start)
-    start
-    ;;
-    restart)
-    stop || true
-    start
-    ;;
-    *)
-    echo "$0 start|stop"
-    ;;
-esac
-
+daemonize --multilog "$logdir" --action "$1" ./irc2mail "$config"
