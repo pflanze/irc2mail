@@ -225,13 +225,17 @@ sub is_privatechan ($) {
 
 sub scanfd {
     my ($f,$channel)=@_;
+    # ^ mis-nomer, channel is the file name including suffix.
     while (<$f>) {
 	my $line=$_;
 	chomp $line;
-	if ($channel=~ /\(\w+\)/
+	my $is_server= not $channel=~ /#/;
+	if ($channel=~ /\(\w+\)/  # 'FreeNode-(notices).log'
 	    and
 	    $line=~ /This nickname is registered.*choose a different nickname, or identify/) {
 	    Log "ignoring 'nickname is registered' message in channel '$channel'"
+	} elsif ($is_server and $line=~ /will be sent as wallops/) {
+	    Log "ignoring 'will be sent as wallops', channel='$channel'";
 	} else {
 	    my $msg= _Message (channel=> $channel, text=> $line);
 	    for my $nick (line__called_nicks $line, is_privatechan($channel)) {
