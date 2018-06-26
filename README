@@ -4,8 +4,8 @@ reach you since for example it's separated from your desktop through
 VNC), but would still like to be notified if someone "pings" you, then
 this might be for you. It will parse Xchat's log messages, queue up
 what's said to you, then when you don't say anything on any channel
-within 120 seconds, send the queued up messages to you by email (one
-email per channel).
+within a configurable time (like 5 minutes), send the queued up
+messages to you by email (one email per channel).
 
 
 INSTALL:
